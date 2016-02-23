@@ -5,6 +5,8 @@
 #pragma once
 
 #include "ErrorDef.h"
+#include "RingBuffer.h"
+#include <iostream>
 
 /*! \brief interface for fast convolution
 */
@@ -41,7 +43,7 @@ public:
     \param iLengthOfBuffers can be anything from 1 sample to 10000000 samples
     \return Error_t
     */
-    Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffers );
+    Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBlockLen );
 
 protected:
 
@@ -51,13 +53,15 @@ protected:
  
 private:
 
-    int _iIRLen, _iBlockLen;
+    int _iIRLen, _iBlockLen, _iNumBlocks;
     float *_pfIR;
     bool _bIsInit;
     ConvDomain _eDomainChoice;
+    CRingBuffer<float> *inputStorage, *outputStorage;
 
     //Private Functions
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
+    Error_t bufferInput( float *pfInputBuffer );
 };
 
 

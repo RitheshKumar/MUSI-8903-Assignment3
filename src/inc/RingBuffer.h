@@ -50,6 +50,32 @@ public:
         incIdx(m_iWriteIdx, iLength);
     }
 
+    void addPostInc (const T* ptNewBuff, int iLength)
+    {
+        add(ptNewBuff, iLength);
+        incIdx(m_iWriteIdx, iLength);
+    }
+
+    void add(const T* ptNewBuff, int iLength)
+    {
+        assert(iLength <= m_iBuffLength && iLength >= 0);
+
+        // copy two parts: to the end of buffer and after wrap around
+        int iNumValues2End      = std::min(iLength,m_iBuffLength - m_iWriteIdx);
+
+        //memcpy (&m_ptBuff[m_iWriteIdx], ptNewBuff, sizeof(T)*iNumValues2End);
+        for( int sample= 0; sample<iNumValues2End; sample++ ) {
+            m_ptBuff[m_iWriteIdx+sample] += ptNewBuff[sample];
+        }
+
+        if ((iLength - iNumValues2End)>0) {
+            //memcpy (m_ptBuff, &ptNewBuff[iNumValues2End], sizeof(T)*(iLength - iNumValues2End));
+            for ( int sample=0; sample<(iLength-iNumValues2End); sample++ ) {
+                m_ptBuff[sample] += ptNewBuff[ iNumValues2End + sample ];
+            }
+        }
+    }
+
     /*! add a new value of type T to write index
     \param tNewValue the new value
     \return void
