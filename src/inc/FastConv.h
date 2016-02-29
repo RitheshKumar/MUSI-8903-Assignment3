@@ -43,7 +43,7 @@ public:
     \param iLengthOfBuffers can be anything from 1 sample to 10000000 samples
     \return Error_t
     */
-    Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBlockLen );
+    Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength );
 
 protected:
 

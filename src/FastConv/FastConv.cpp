@@ -81,19 +81,42 @@ Error_t CFastConv::reset()
     return kNoError;
 }
 
-Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBlockLen )
+Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength )
 {
-
+    //zeros pad for the input buffer
+    int iNumZerosPadInput = _iBlockLen - (iBufferLength % _iBlockLen);
+    int iNumBlockInput    = iBufferLength / _iBlockLen + 1;
+    int iBlockNumCounter  = 1;
+    
     if( !_bIsInit ) {
         return kNotInitializedError;
     }
-
+    for (int i = 0; i < iBufferLength; i = i+_iBlockLen) {
+        if (iBlockNumCounter == iNumBlockInput) {
+            //zero padding for last block
+            inputStorage->putPostInc(pfInputBuffer+i, iBufferLength % _iBlockLen);
+            for (int remainings = 0; remainings < iNumZerosPadInput; remainings++) {
+                inputStorage->putPostInc(0.f);
+            }
+        } else {
+        //otherwise, use ringbuffer to save block and save the input buffer
+            inputStorage->putPostInc(pfInputBuffer+i, _iBlockLen);
+        }
+        for (int sample=0; sample< _iIRLen; sample++) {
+            std::cout<<inputStorage->getPostInc()<<",";
+        }std::cout<<"\n";
+        iBlockNumCounter++;
+    }
+    
     inputStorage->putPostInc( pfInputBuffer, _iBlockLen );
     
     if ( _eDomainChoice == kTimeDomain ) {
-        processTimeDomain( pfInputBuffer, pfOutputBuffer, iBlockLen );
-        outputStorage->addPostInc(pfOutputBuffer, iBlockLen);
-        outputStorage->add(pfOutputBuffer+iBlockLen, iBlockLen-1);
+        
+        processTimeDomain( pfInputBuffer, pfOutputBuffer, iBufferLength );
+        
+        
+//        outputStorage->addPostInc(pfOutputBuffer, iBufferLength);
+//        outputStorage->add(pfOutputBuffer+iBufferLength, iBufferLength-1);
 //        for( int sample = 0; sample< _iIRLen; sample++ ) {
 //            std::cout<<outputStorage->getPostInc()<<", ";
 //        }std::cout<<std::endl;
@@ -106,13 +129,13 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBl
 
 Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer ) {
 
-    for( int sample =0; sample<iLengthOfBuffer; sample++){
-        std::cout<<pfInputBuffer[sample]<<", ";
-    }std::cout<<std::endl;
+//    for( int sample =0; sample<iLengthOfBuffer; sample++){
+//        std::cout<<pfInputBuffer[sample]<<", ";
+//    }std::cout<<std::endl;
 
     
     for ( int sample=0; sample<iLengthOfBuffer; sample++ ) {
-        for( int ir=0; ir<_iBlockLen; ir++ ) {
+        for( int ir=0; ir<_iIRLen; ir++ ) {
             pfOutputBuffer[ir+sample] += pfInputBuffer[sample]*_pfIR[ir];
         }
     }
