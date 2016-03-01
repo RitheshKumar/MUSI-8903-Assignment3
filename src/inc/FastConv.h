@@ -53,7 +53,7 @@ protected:
  
 private:
 
-    int _iIRLen, _iBlockLen, _iNumBlocks;
+    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength;
     float *_pfIR;
     bool _bIsInit;
     ConvDomain _eDomainChoice;

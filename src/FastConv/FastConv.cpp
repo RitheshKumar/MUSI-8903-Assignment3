@@ -29,27 +29,23 @@ Error_t CFastConv::destroy( CFastConv * &pFastConv ) {
         return kNoError;
     }
     
-    delete pFastConv;
-    pFastConv = 0;
+    delete pFastConv; pFastConv = 0;
     return kNoError;
 }
 
 Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLength /*= 8192*/, ConvDomain domainChoice )
 {
-    
     reset();
 
     _eDomainChoice = domainChoice;
 
-    //Zero pad ir to integer no. of blocks
+    //Zero pad IR to multiple integer No. of blocks
     int nZerosToPad = iBlockLength - iLengthOfIr%iBlockLength;
     _iNumBlocks = iLengthOfIr/iBlockLength + 1;
     _iIRLen = iLengthOfIr + nZerosToPad;
     _iBlockLen = iBlockLength;
-
-//    _pfIR   = new float[iLengthOfIr + nZerosToPad];
+    _iOutputLength = iLengthOfIr;
     _pfIR   = new float[_iIRLen];
-
     for( int sample=0; sample<iLengthOfIr; sample++ ) {
         _pfIR[sample] = pfImpulseResponse[sample];
     }
@@ -75,8 +71,9 @@ Error_t CFastConv::reset()
 //    if(_pfIR){
 //        delete [] _pfIR;
 //    }
-    delete [] _pfIR;
-    _pfIR = 0;
+    delete [] _pfIR; _pfIR = 0;
+    delete inputStorage; inputStorage = 0;
+    delete outputStorage; outputStorage = 0;
     _bIsInit = false;
 
     return kNoError;
@@ -88,6 +85,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     int iNumZerosPadInput = _iBlockLen - (iBufferLength % _iBlockLen);
     int iNumBlockInput    = iBufferLength / _iBlockLen + 1;
     int iBlockNumCounter  = 1;
+    _iOutputLength = _iOutputLength + iBufferLength - 1;
     
     if( !_bIsInit ) {
         return kNotInitializedError;
@@ -114,20 +112,21 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
 //    inputStorage->putPostInc( pfInputBuffer, _iBlockLen );
     
     if ( _eDomainChoice == kTimeDomain ) {
-        
-        float *pfBridgeOut = new float[iBufferLength + _iIRLen ];
+        // Length of Input + length of IR + length of input 0 pad + length of IR 0 pad
+        float *pfBridgeOut = new float[iBufferLength + iNumZerosPadInput + _iIRLen ];
     
         processTimeDomain( pfInputBuffer, pfBridgeOut, iBufferLength );
         
-        for (int sample=0; sample<iBufferLength + 4096*2; sample++) {
+        for (int sample=0; sample< _iOutputLength; sample++) {
             pfOutputBuffer[sample] = pfBridgeOut[sample];
         }
+        
 //        outputStorage->addPostInc(pfOutputBuffer, iBufferLength);
 //        outputStorage->add(pfOutputBuffer+iBufferLength, iBufferLength-1);
 //        for( int sample = 0; sample< _iIRLen; sample++ ) {
 //            std::cout<<outputStorage->getPostInc()<<", ";
 //        }std::cout<<std::endl;
-        
+        _iOutputLength = _iOutputLength - iBufferLength + 1;
     }
 
     return kNoError;
@@ -147,9 +146,6 @@ Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffe
         }
     }
 
-//    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
-//        std::cout<<pfOutputBuffer[sample]<<", ";
-//    }std::cout<<std::endl;
     return kNoError;
 
 }
