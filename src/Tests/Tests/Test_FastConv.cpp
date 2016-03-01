@@ -3,14 +3,19 @@
 #ifdef WITH_TESTS
 #include <cassert>
 #include <cstdio>
+#include <fstream>
 
 #include "UnitTest++.h"
 
-#include "Vector.h"
+#include <vector>
 
 #include "FastConv.h"
 
 #include "Synthesis.h"
+
+
+extern std::string cTestDataDir;
+
 
 SUITE(FastConv)
 {
@@ -108,35 +113,73 @@ SUITE(FastConv)
 //        CHECK_ARRAY_EQUAL( pfReference, pfOutputSignal, iIRLengthInSample );
 //        
 //        delete pfRandomIR; pfRandomIR = 0;
+//        delete pfInputSignal; pfInputSignal = 0;
+//        delete pfOutputSignal; pfOutputSignal = 0;
+//        delete pfReference; pfReference = 0;
 //    }
     
     //Question3.2
     TEST_FIXTURE(FastConvData, InputBlockLengthTest)
     {
+        m_pCFastConv->reset();
         //generate a 1 second sawtooth wave of 50 Hz for test (sample rate 10000)
-        int iInputLengthInSample = 10000;
+        int iInputSampleRate = 10000;
+        int iInputLengthInSec = 1;
+        int iInputLengthInSample = iInputLengthInSec * iInputSampleRate;
         float* pfInputSignal = new float[iInputLengthInSample];
-        CSynthesis::generateSaw(pfInputSignal, 50, 10000, iInputLengthInSample);
+//        CSynthesis::generateSaw(pfInputSignal, 50, iInputSampleRate, iInputLengthInSample);
+        CSynthesis::generateSine(pfInputSignal, 50, iInputSampleRate, iInputLengthInSample);
         
-        //generate a impulse response
-        int iIRLengthInSample = 1000;
+        //generate a impulse response: decayed sine wave
+        int iIRSampleRate = iInputSampleRate;
+        int iIRLengthInSec = iInputLengthInSec;
+        int iIRLengthInSample = iIRSampleRate * iIRLengthInSec;
         float* pfImpulseResponse = new float[iIRLengthInSample];
-        memset(pfImpulseResponse, 1, iIRLengthInSample*sizeof(*pfImpulseResponse));
+        CSynthesis::generateSine(pfImpulseResponse, 100, iIRSampleRate, iIRLengthInSample);
+        float param = 0.f;
+        for (int sample = 0; sample < iIRLengthInSample; sample++) {
+            pfImpulseResponse[sample] = expf(-param) * pfImpulseResponse[sample];
+            param = param + 1.f/iIRSampleRate;
+        }
+        
+        
         
         //creat a output buffer
         int iOutputLengthInSample = iInputLengthInSample + iIRLengthInSample - 1;
         float* pfOutputSignal = new float[iOutputLengthInSample];
         
         // create a array of block size
-        int iaBlockSize[] = {1, 13, 1023, 2048, 1, 17, 5000, 1897};
+        int iaBlockSize[8] = {1, 13, 1023, 2048, 1, 17, 5000, 1897};
         
-        for (int nthBlockSize = 0; nthBlockSize < sizeof(iaBlockSize) - 1; nthBlockSize++) {
+        //Read Reference Output
+        std::ifstream inputFile;
+        inputFile.open(cTestDataDir +  "testOutput.txt");
+        std::ofstream outputFile(cTestDataDir +  "myOut1.txt");
+        
+        std::istream_iterator<float> start( inputFile ), end;
+        std::vector<float> outputRef( start, end );
+        
+        
+//        std::ostream_iterator<float> outputStream(std::cout," , ");
+//        std::copy(outputRef.begin(),outputRef.end(),outputStream);
+        
+        
+        for (int nthBlockSize = 0; nthBlockSize < 8; nthBlockSize++) {
             // for each block size, run the corresponding test process
-            
+  
             m_pCFastConv->init( pfImpulseResponse, iIRLengthInSample, iaBlockSize[nthBlockSize], CFastConv::kTimeDomain );
             m_pCFastConv->process( pfInputSignal, pfOutputSignal, iInputLengthInSample);
-            std::cout<<"pass the test, using " << iaBlockSize[nthBlockSize] << " !";
+            
+            for(int sample=0; sample<iOutputLengthInSample; sample++ ) {
+                outputFile<<pfOutputSignal[sample]<<"\n";
+            }
+            
+            CHECK_ARRAY_CLOSE(outputRef, pfOutputSignal,iOutputLengthInSample, 4e-3);
+
         }
+        
+        inputFile.close();
+        outputFile.close();
         
         delete pfInputSignal; pfInputSignal = 0;
         delete pfOutputSignal; pfOutputSignal = 0;
