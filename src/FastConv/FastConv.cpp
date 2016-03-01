@@ -47,7 +47,8 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     _iIRLen = iLengthOfIr + nZerosToPad;
     _iBlockLen = iBlockLength;
 
-    _pfIR   = new float[iLengthOfIr + nZerosToPad];
+//    _pfIR   = new float[iLengthOfIr + nZerosToPad];
+    _pfIR   = new float[_iIRLen];
 
     for( int sample=0; sample<iLengthOfIr; sample++ ) {
         _pfIR[sample] = pfImpulseResponse[sample];
@@ -99,22 +100,28 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
                 inputStorage->putPostInc(0.f);
             }
         } else {
-        //otherwise, use ringbuffer to save block and save the input buffer
+        //otherwise, use ringbuffer to save the input buffer to storage buffer
             inputStorage->putPostInc(pfInputBuffer+i, _iBlockLen);
         }
-        for (int sample=0; sample< _iIRLen; sample++) {
-            std::cout<<inputStorage->getPostInc()<<",";
-        }std::cout<<"\n";
+
+//        for (int sample=0; sample< _iIRLen; sample++) {
+//            std::cout<<inputStorage->getPostInc()<<",";
+//        }std::cout<<"\n";
+        
         iBlockNumCounter++;
     }
     
-    inputStorage->putPostInc( pfInputBuffer, _iBlockLen );
+//    inputStorage->putPostInc( pfInputBuffer, _iBlockLen );
     
     if ( _eDomainChoice == kTimeDomain ) {
         
-        processTimeDomain( pfInputBuffer, pfOutputBuffer, iBufferLength );
+        float *pfBridgeOut = new float[iBufferLength + _iIRLen ];
+    
+        processTimeDomain( pfInputBuffer, pfBridgeOut, iBufferLength );
         
-        
+        for (int sample=0; sample<iBufferLength + 4096*2; sample++) {
+            pfOutputBuffer[sample] = pfBridgeOut[sample];
+        }
 //        outputStorage->addPostInc(pfOutputBuffer, iBufferLength);
 //        outputStorage->add(pfOutputBuffer+iBufferLength, iBufferLength-1);
 //        for( int sample = 0; sample< _iIRLen; sample++ ) {
