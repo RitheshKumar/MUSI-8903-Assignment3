@@ -6,6 +6,7 @@
 
 #include "ErrorDef.h"
 #include "RingBuffer.h"
+#include "Buffer.h"
 #include <iostream>
 
 /*! \brief interface for fast convolution
@@ -57,7 +58,10 @@ private:
     float *_pfIR;
     bool _bIsInit;
     ConvDomain _eDomainChoice;
-    CRingBuffer<float> *inputStorage, *outputStorage;
+//    CRingBuffer<float> *inputStorage, *outputStorage;
+    
+    CBuffer* buffer;
+
 
     //Private Functions
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
