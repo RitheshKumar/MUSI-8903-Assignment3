@@ -51,6 +51,7 @@ SUITE(FastConv)
         CHECK_ARRAY_EQUAL( output, procOut, 8 );
     }
 
+
     TEST_FIXTURE(FastConvData, inputBufferStorageTest) {
         float input[16],
               impulse[4] = { 1, 1, 1, 1}; 
@@ -72,7 +73,27 @@ SUITE(FastConv)
     }
 
 
-    
+
+//    TEST_FIXTURE(FastConvData, inputBufferStorageTest) {
+//        float input[18],
+//              impulse[4] = { 1, 1, 1, 1}; 
+//        float *procOut = new float[21];
+//        int blockLen   = 3;
+//
+//        for( int sample =0; sample<18; sample++) {
+//            input[sample] = sample*1.0f; 
+//        }
+//
+//        m_pCFastConv->init( impulse, 4, blockLen, CFastConv::kTimeDomain );
+//        for( int block = 0; block<6; block++ ) {
+//            m_pCFastConv->process( &input[block*blockLen], &procOut[block*blockLen], blockLen );
+//        }
+//        delete procOut; procOut = 0;
+//    }
+//
+//
+//    
+
 //    //Question3.1
 //    TEST_FIXTURE(FastConvData, IrTest)
 //    {
