@@ -151,8 +151,8 @@ SUITE(FastConv)
         const int ipLen = 22,
         impLen= 4,
         opLen = ipLen + impLen - 1,
-        numBlkSzs         = 8,
-        blkLen[numBlkSzs] = { 3, 13, 1023, 2048,1,17, 5000, 1897};
+        numBlkSzs         = 4,
+        blkLen[numBlkSzs] = {3, 17, 2048, 5000};//{ 3, 13, 1023, 2048,1,17, 5000, 1897};
         
         
         float input[ipLen],
@@ -166,6 +166,7 @@ SUITE(FastConv)
         
         
         for( int blkIdx = 0; blkIdx< numBlkSzs; blkIdx++ ) {
+            std::cout<<"BlockLen: "<<blkLen[blkIdx]<<"\n";
             float *procOut = new float[std::max(opLen, blkLen[blkIdx])];
             m_pCFastConv->init( impulse, impLen, 15, CFastConv::kTimeDomain );
             
@@ -197,6 +198,7 @@ SUITE(FastConv)
             
             
             delete procOut; procOut = 0;
+            std::cout<<std::endl;
         }
     }
     

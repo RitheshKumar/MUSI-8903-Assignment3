@@ -58,7 +58,7 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
 
     _bIsInit = true;
     
-    buffer->init(3);
+    buffer->init(3  );
 
 //    inputStorage = new CRingBuffer<float>( _iIRLen );
 //    inputStorage->reset();
