@@ -4,6 +4,7 @@
 #include <cassert>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 /*! \brief implement a circular buffer of type T
 */
@@ -74,6 +75,7 @@ public:
                 m_ptBuff[sample] += ptNewBuff[ iNumValues2End + sample ];
             }
         }
+//        std::cout<<"WriteIdx: "<<m_iWriteIdx<<std::endl;
     }
 
     /*! add a new value of type T to write index
@@ -109,6 +111,7 @@ public:
     {
         T tValue = get();
         incIdx(m_iReadIdx);
+        
         return tValue;
     }
 
@@ -121,6 +124,7 @@ public:
     {
         get(ptBuff, iLength);
         incIdx(m_iReadIdx, iLength);
+        
     }
 
     /*! return the value at the current read index

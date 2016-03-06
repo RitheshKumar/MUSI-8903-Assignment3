@@ -4,7 +4,7 @@
 
 #include "FastConv.h"
 
-CFastConv::CFastConv( void ): _pfIR(0)
+CFastConv::CFastConv( void ): _pfIR(0), inputStorage(0), outputStorage(0)
 {
     reset();
 }
@@ -58,13 +58,30 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     }
 
     _bIsInit = true;
-
-    inputStorage = new CRingBuffer<float>( _iIRLen );
-    inputStorage->reset();
-
-    outputStorage = new CRingBuffer<float>( _iIRLen );
-    outputStorage->reset();
     
+//    if(!inputStorage) {
+//        delete inputStorage;
+//        inputStorage = new CRingBuffer<float>( _iIRLen );
+//        inputStorage->reset();
+//    }
+//    
+//    else {
+//        inputStorage = new CRingBuffer<float>( _iIRLen );
+//        inputStorage->reset();
+//    }
+
+    
+    if(!outputStorage) {
+        delete outputStorage;
+        outputStorage = new CRingBuffer<float>( 6000 );
+        outputStorage->reset();
+    }
+    
+    else {
+        outputStorage = new CRingBuffer<float>( 6000 );
+        outputStorage->reset();
+    }
+
     return kNoError;
 }
 
@@ -85,49 +102,43 @@ Error_t CFastConv::reset()
 Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength )
 {
     //zeros pad for the input buffer
-    int iNumZerosPadInput = _iBlockLen - (iBufferLength % _iBlockLen);
-    int iNumBlockInput    = iBufferLength / _iBlockLen + 1;
-    int iBlockNumCounter  = 1;
+//    int iNumZerosPadInput = _iBlockLen - (iBufferLength % _iBlockLen);
+//    int iNumBlockInput    = iBufferLength / _iBlockLen + 1;
+//    int iBlockNumCounter  = 1;
     
     if( !_bIsInit ) {
         return kNotInitializedError;
     }
-    for (int i = 0; i < iBufferLength; i = i+_iBlockLen) {
-        if (iBlockNumCounter == iNumBlockInput) {
-            //zero padding for last block
-            inputStorage->putPostInc(pfInputBuffer+i, iBufferLength % _iBlockLen);
-            for (int remainings = 0; remainings < iNumZerosPadInput; remainings++) {
-                inputStorage->putPostInc(0.f);
-            }
-        } else {
-        //otherwise, use ringbuffer to save the input buffer to storage buffer
-            inputStorage->putPostInc(pfInputBuffer+i, _iBlockLen);
-        }
 
-//        for (int sample=0; sample< _iIRLen; sample++) {
-//            std::cout<<inputStorage->getPostInc()<<",";
-//        }std::cout<<"\n";
-        
-        iBlockNumCounter++;
-    }
-    
-//    inputStorage->putPostInc( pfInputBuffer, _iBlockLen );
+ 
     
     if ( _eDomainChoice == kTimeDomain ) {
         
         float *pfBridgeOut = new float[iBufferLength + _iIRLen ];
-    
+        memset (pfBridgeOut, 0, sizeof(float)*(iBufferLength + _iIRLen) );
+        
         processTimeDomain( pfInputBuffer, pfBridgeOut, iBufferLength );
         
-        for (int sample=0; sample<iBufferLength + 4096*2; sample++) {
-            pfOutputBuffer[sample] = pfBridgeOut[sample];
-        }
-//        outputStorage->addPostInc(pfOutputBuffer, iBufferLength);
-//        outputStorage->add(pfOutputBuffer+iBufferLength, iBufferLength-1);
-//        for( int sample = 0; sample< _iIRLen; sample++ ) {
-//            std::cout<<outputStorage->getPostInc()<<", ";
+//        std::cout<<"pfBridgeOut: ";
+//        for( int sample = 0; sample < iBufferLength + _iIRLen; sample++ ) {
+//            std::cout<<pfBridgeOut[sample]<<",";
 //        }std::cout<<std::endl;
+
+
+        outputStorage->addPostInc(pfBridgeOut, iBufferLength);
+        outputStorage->add(&pfBridgeOut[iBufferLength], _iIRLen-1);
         
+        
+        
+//        std::cout<<"pfOutputBuffer: ";
+        for( int sample = 0; sample< iBufferLength; sample++ ) {
+            pfOutputBuffer[sample] = outputStorage->getPostInc();
+//            std::cout<<pfOutputBuffer[sample]<<",";
+        }
+//        std::cout<<std::endl;
+        
+        delete [] pfBridgeOut;
+        pfBridgeOut = 0;    
     }
 
     return kNoError;
@@ -136,20 +147,29 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
 
 Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer ) {
 
+//    std::cout<<"Ip: ";
 //    for( int sample =0; sample<iLengthOfBuffer; sample++){
 //        std::cout<<pfInputBuffer[sample]<<", ";
 //    }std::cout<<std::endl;
-
-    
-    for ( int sample=0; sample<iLengthOfBuffer; sample++ ) {
-        for( int ir=0; ir<_iIRLen; ir++ ) {
-            pfOutputBuffer[ir+sample] += pfInputBuffer[sample]*_pfIR[ir];
-        }
-    }
-
+//    
+//    std::cout<<"OpBufferBefore: ";
 //    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
 //        std::cout<<pfOutputBuffer[sample]<<", ";
 //    }std::cout<<std::endl;
+    
+    for ( int sample=0; sample<iLengthOfBuffer; sample++ ) {
+
+        for( int ir=0; ir<_iIRLen; ir++ ) {
+            pfOutputBuffer[ir+sample] += pfInputBuffer[sample]*_pfIR[ir];
+
+        }
+
+    }
+
+//    std::cout<<"OpBufferAfter: ";
+//    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
+//        std::cout<<pfOutputBuffer[sample]<<", ";
+//    }std::cout<<std::endl<<std::endl;
     return kNoError;
 
 }
