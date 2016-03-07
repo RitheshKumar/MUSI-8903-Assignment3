@@ -45,7 +45,10 @@ public:
     \return Error_t
     */
     Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength );
-
+    
+    void getTail(float* pfTail, int iTailLength, int ipLength, int ipBlockSize);
+    
+    void blockImpulseResponse();
 protected:
 
     CFastConv();

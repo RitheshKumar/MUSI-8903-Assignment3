@@ -42,14 +42,16 @@ public:
         m_iNumCycles = numCycles;
         
         if (m_iInputStorageLength != 0) {
-            delete m_pfInputStorageBuffer;
+//            delete m_pfInputStorageBuffer;
+//            m_pfInputStorageBuffer = 0;
             m_pfInputStorageBuffer = new CRingBuffer<float> (m_iInputStorageLength*m_iNumCycles);
         } else {
             m_pfInputStorageBuffer = new CRingBuffer<float> (m_iInputStorageLength*m_iNumCycles);
         }
 
         if (m_pfOutputStorageBuffer != 0) {
-            delete m_pfOutputStorageBuffer;
+//            delete m_pfOutputStorageBuffer;
+//            m_pfOutputStorageBuffer = 0;
             m_pfOutputStorageBuffer = new CRingBuffer<float> (m_iOutputStorageLength);
             
         } else {
@@ -75,9 +77,9 @@ public:
             m_pfInputStorageBuffer->resetIdx();
             m_iCycleIdx = 0;
         }
-        for (int sample = 0; sample<50; sample++) {
-            std::cout<<m_pfInputStorageBuffer->get(sample)<<",";
-        }std::cout<<std::endl;
+//        for (int sample = 0; sample<50; sample++) {
+//            std::cout<<m_pfInputStorageBuffer->get(sample)<<",";
+//        }std::cout<<std::endl;
     }
     
     void overLapAdd(float* pfInput, int iInputLength, int iIRLength) {
@@ -85,6 +87,7 @@ public:
         
         m_pfOutputStorageBuffer->addPostInc(pfInput, iInputLength);
         m_pfOutputStorageBuffer->add(&pfInput[iInputLength], iIRLength-1);
+//        printOutStorageBuffer(25);//+iIRLength-1);
         
     }
     
@@ -92,7 +95,41 @@ public:
         for (int sample = 0; sample < iOutputLength; sample++) {
             pfOutput[sample] = m_pfOutputStorageBuffer->getPostInc();
         }
+//        std::cout<<"Read_Idx: "<<m_pfOutputStorageBuffer->getReadIdx()<<std::endl;
     }
+    
+    void getTail(float* pfTail, int iTailLength, int numOfZeroToPad) {
+//        std::cout<<"Tail:";
+        for (int sample = 0; sample < iTailLength; sample++) {
+//            pfTail[sample] = m_pfOutputStorageBuffer->getPostInc();
+            pfTail[sample] = m_pfOutputStorageBuffer->get(sample - numOfZeroToPad);//numOfZeroToPad);
+//            std::cout<<pfTail[sample]<<" , ";
+        }
+//        std::cout<<std::endl;
+    }
+    
+    void printOutStorageBuffer (int printLen) {
+        m_pfOutputStorageBuffer->printContent(printLen);
+    }
+    
+    void getInputBlock (int blockNum, float *pfInput, int iInputLength) {
+        
+        int curReadIdx = m_pfInputStorageBuffer->getReadIdx();
+        
+        
+        m_pfInputStorageBuffer->setReadIdx(blockNum * iInputLength);
+        
+//        std::cout<<"ReadIdx: "<<m_pfInputStorageBuffer->getReadIdx()<<std::endl;
+        
+        for (int sample = 0; sample < iInputLength; sample++) {
+            pfInput[sample] = m_pfInputStorageBuffer->get(sample);
+        }
+        
+        m_pfInputStorageBuffer->setReadIdx(curReadIdx);
+        
+//        std::cout<<"ReadIdx: "<<m_pfInputStorageBuffer->getReadIdx()<<std::endl;
+    }
+    
     
 private:
     CBuffer(const CBuffer& that);

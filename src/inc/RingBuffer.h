@@ -4,6 +4,7 @@
 #include <cassert>
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 /*! \brief implement a circular buffer of type T
 */
@@ -220,6 +221,16 @@ public:
     {
         return m_iBuffLength;
     }
+    
+    //Display Contents of buffer for given len
+    void printContent (int printLen) const
+    {
+        assert(printLen<= m_iBuffLength);
+        for (int sample=0; sample<printLen; sample++ ) {
+            std::cout<<m_ptBuff[sample]<<",";
+        }std::cout<<std::endl;
+    }
+    
 private:
     CRingBuffer ();
     CRingBuffer(const CRingBuffer& that);

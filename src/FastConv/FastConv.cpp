@@ -7,7 +7,7 @@
 CFastConv::CFastConv( void ): _pfIR(0)
 {
     reset();
-    buffer = new CBuffer(100, 6000, 6000);
+    buffer = new CBuffer(100, 600000, 600000);
 }
 
 CFastConv::~CFastConv( void )
@@ -58,7 +58,7 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
 
     _bIsInit = true;
     
-    buffer->init(3  );
+    buffer->init(_iNumBlocks);
 
 //    inputStorage = new CRingBuffer<float>( _iIRLen );
 //    inputStorage->reset();
@@ -149,11 +149,20 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     }
     
     buffer->storeInput(pfInputBuffer, iBufferLength);
+//    float *tempInput = new float(iBufferLength);
+//    buffer->getInputBlock(0, tempInput, iBufferLength);
+//    for (int sample= 0; sample < iBufferLength; sample++) {
+//        
+//        std::cout<<tempInput[sample];
+//    }
+//    delete [] tempInput;
     
     if ( _eDomainChoice == kTimeDomain ) {
         
         float *pfBridgeOut = new float[iBufferLength + _iIRLen ];
         memset (pfBridgeOut, 0, sizeof(float)*(iBufferLength + _iIRLen) );
+        
+        
         
         processTimeDomain( pfInputBuffer, pfBridgeOut, iBufferLength );
         
@@ -176,7 +185,12 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
 //        }
         //        std::cout<<std::endl;
         
-        buffer->getOutput(pfOutputBuffer, iBufferLength);
+        buffer->getOutput(pfOutputBuffer, iBufferLength);//+_iIRLen-1);
+
+        //        std::cout<<"pfOutputBuffer: ";
+//        for (int sample = 0; sample < iBufferLength + _iIRLen - 1; sample++) {
+//            std::cout<<pfOutputBuffer[sample];
+//        } std::cout<<",";
         
         delete [] pfBridgeOut;
         pfBridgeOut = 0;    
@@ -233,6 +247,14 @@ Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffe
     
 }
 
+void CFastConv::getTail(float* pfTail, int iTailLength, int ipLength, int ipBLockSize) {
+    int iNumZeroToPad_IP = ipBLockSize - ipLength%ipBLockSize;
+    buffer->getTail( pfTail, iTailLength, iNumZeroToPad_IP );
+}
+
+void CFastConv::blockImpulseResponse() {
+    
+}
 
 //Error_t CFastConv::bufferInput( float *pfInputBuffer ) {
 //
