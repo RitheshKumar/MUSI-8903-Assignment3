@@ -126,12 +126,14 @@ SUITE(FastConv)
         
         
         for( int blkIdx = 0; blkIdx< numBlkSzs; blkIdx++ ) {
-//            std::cout<<"BlockLen: "<<blkLen[blkIdx]<<"\n";
-//            std::cout<<"prcOutLen: "<<std::max(opLen, blkLen[blkIdx])<<std::endl;
-            float *procOut = new float[std::max(opLen, blkLen[blkIdx])];
-            m_pCFastConv->init( impulse, impLen, 15, CFastConv::kTimeDomain );
             
             const int numBlks   = ipLen/blkLen[blkIdx] + 1;
+//            std::cout<<"BlockLen: "<<blkLen[blkIdx]<<"\n";
+//            std::cout<<"prcOutLen: "<<std::max(opLen, numBlks*blkLen[blkIdx]+1)<<std::endl;
+            float *procOut = new float[std::max(opLen, blkLen[blkIdx]*numBlks+1)];
+            m_pCFastConv->init( impulse, impLen, 15, CFastConv::kTimeDomain );
+            
+            
             
             for( int block = 0; block<numBlks; block++ ) {
                 int curIdx = block*blkLen[blkIdx];
@@ -148,11 +150,12 @@ SUITE(FastConv)
                         lastBlk[sample] = 0.0f;
                     }
                     
+//                    std::cout<<"CurIdx: "<<curIdx<<", curIdx+blkLen: "<<blkLen[blkIdx]+curIdx<<std::endl;
                     m_pCFastConv->process( lastBlk, &procOut[ curIdx ], blkLen[blkIdx] );
                     delete [] lastBlk; lastBlk = 0;
                 }
                 else {
-                    
+//                    std::cout<<"CurIdx: "<<curIdx<<", curIdx+blkLen: "<<blkLen[blkIdx]+curIdx<<std::endl;
                     m_pCFastConv->process( &input[curIdx], &procOut[curIdx], blkLen[blkIdx] );
                 }
                 
@@ -161,8 +164,8 @@ SUITE(FastConv)
 //            for (int sample=0; sample<ipLen; sample++) {
 //                std::cout<<procOut[sample]<<",";
 //            }std::cout<<std::endl;
-//            m_pCFastConv->getTail(procOut+ipLen, impLen-1, ipLen, blkLen[blkIdx]);
-//            CHECK_ARRAY_EQUAL( output, procOut, opLen );
+            m_pCFastConv->getTail(procOut+ipLen, impLen-1, ipLen, blkLen[blkIdx]);
+            CHECK_ARRAY_EQUAL( output, procOut, opLen );
             
             
             delete [] procOut; procOut = 0;

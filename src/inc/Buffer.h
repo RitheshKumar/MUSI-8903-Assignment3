@@ -88,9 +88,10 @@ public:
     void getOutput(float* pfOutput, int iOutputLength) {
         
         for (int sample = 0; sample < iOutputLength; sample++) {
+//             m_pfOutputStorageBuffer->getPostInc();
             pfOutput[sample] = m_pfOutputStorageBuffer->getPostInc();
         }
-        std::cout<<"Read_Idx: "<<m_pfOutputStorageBuffer->getReadIdx()<<std::endl;
+//        std::cout<<"Read_Idx: "<<m_pfOutputStorageBuffer->getReadIdx()<<std::endl;
     }
     
     void getTail(float* pfTail, int iTailLength, int numOfZeroToPad) {
