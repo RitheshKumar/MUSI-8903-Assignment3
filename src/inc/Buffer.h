@@ -19,7 +19,7 @@
 class CBuffer {
 // The buffer class is able to block the input signal, save the blocked signal using ring buffer
 public:
-    CBuffer(int iBlockSize, int iBufferLength, int inputLength):
+    CBuffer(int iBlockSize, int inputLength, int iBufferLength):
     m_iBlockSize(iBlockSize),
     m_iNumCycles(0),
     m_iInputStorageLength(inputLength),
@@ -41,32 +41,26 @@ public:
     void init( int numCycles = 1 ) {
         m_iNumCycles = numCycles;
         
-        if (m_iInputStorageLength != 0) {
+//        if (m_pfInputStorageBuffer != NULL) {
 //            delete m_pfInputStorageBuffer;
 //            m_pfInputStorageBuffer = 0;
-            m_pfInputStorageBuffer = new CRingBuffer<float> (m_iInputStorageLength*m_iNumCycles);
-        } else {
-            m_pfInputStorageBuffer = new CRingBuffer<float> (m_iInputStorageLength*m_iNumCycles);
-        }
-
-        if (m_pfOutputStorageBuffer != 0) {
+//        }
+        m_pfInputStorageBuffer = new CRingBuffer<float> (m_iInputStorageLength*m_iNumCycles);
+        
+//        if (m_pfOutputStorageBuffer != NULL) {
 //            delete m_pfOutputStorageBuffer;
 //            m_pfOutputStorageBuffer = 0;
-            m_pfOutputStorageBuffer = new CRingBuffer<float> (m_iOutputStorageLength);
+//        }
+        m_pfOutputStorageBuffer = new CRingBuffer<float> (m_iOutputStorageLength);
             
-        } else {
-            m_pfOutputStorageBuffer = new CRingBuffer<float> (m_iOutputStorageLength);
-
-        }
-
     }
     
-    void reset() {
-        m_pfInputStorageBuffer -> reset();
-        m_pfOutputStorageBuffer -> reset();
-        m_iOutputStorageLength = 0;
-        m_iBlockSize    = 0;
-    }
+//    void reset() {
+//        m_pfInputStorageBuffer -> reset();
+//        m_pfOutputStorageBuffer -> reset();
+//            m_iOutputStorageLength = 0;
+//        m_iBlockSize    = 0;
+//    }
     
     void storeInput(float *pfInput, int iInputLength) {
         m_iCycleIdx++;
@@ -92,10 +86,11 @@ public:
     }
     
     void getOutput(float* pfOutput, int iOutputLength) {
+        
         for (int sample = 0; sample < iOutputLength; sample++) {
             pfOutput[sample] = m_pfOutputStorageBuffer->getPostInc();
         }
-//        std::cout<<"Read_Idx: "<<m_pfOutputStorageBuffer->getReadIdx()<<std::endl;
+        std::cout<<"Read_Idx: "<<m_pfOutputStorageBuffer->getReadIdx()<<std::endl;
     }
     
     void getTail(float* pfTail, int iTailLength, int numOfZeroToPad) {
@@ -113,6 +108,8 @@ public:
     }
     
     void getInputBlock (int blockNum, float *pfInput, int iInputLength) {
+        
+        assert(m_pfInputStorageBuffer->getLength() > 0 );
         
         int curReadIdx = m_pfInputStorageBuffer->getReadIdx();
         
