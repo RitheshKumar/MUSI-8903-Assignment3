@@ -77,9 +77,6 @@ public:
             m_pfInputStorageBuffer->resetIdx();
             m_iCycleIdx = 0;
         }
-//        for (int sample = 0; sample<50; sample++) {
-//            std::cout<<m_pfInputStorageBuffer->get(sample)<<",";
-//        }std::cout<<std::endl;
     }
     
     void overLapAdd(float* pfInput, int iInputLength, int iIRLength) {

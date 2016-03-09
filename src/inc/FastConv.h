@@ -48,6 +48,8 @@ public:
     
     void getTail(float* pfTail, int iTailLength, int ipLength, int ipBlockSize);
     
+    void flushBuffer(float* pfTail);
+    
     void blockImpulseResponse();
 protected:
 
@@ -57,18 +59,24 @@ protected:
  
 private:
 
-    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength;
+    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength, _iIRLenNoPad;
     float *_pfIR;
     bool _bIsInit;
     ConvDomain _eDomainChoice;
 //    CRingBuffer<float> *inputStorage, *outputStorage;
     
     CBuffer* buffer;
-
+    
+    float* m_pfTailBuffer;
 
     //Private Functions
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
     Error_t bufferInput( float *pfInputBuffer );
+    
+    Error_t blockedProcessTimeDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer, int iLengthOfInput, int iLengthOfIr);
+    
+    int NextPowerOf2(int value);
+    
 };
 
 
