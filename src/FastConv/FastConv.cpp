@@ -1,6 +1,7 @@
 
 #include "Vector.h"
 #include "Util.h"
+#include "Fft.h"
 
 #include "FastConv.h"
 
@@ -188,7 +189,7 @@ void CFastConv::getTail(float* pfTail, int iTailLength, int ipLength, int ipBLoc
 
 void CFastConv::blockImpulseResponse() {
     
-}
+} 
 
 
 
