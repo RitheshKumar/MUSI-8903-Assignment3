@@ -46,7 +46,7 @@ public:
     */
     Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength );
     
-    void getTail(float* pfTail, int iTailLength, int ipLength, int ipBlockSize);
+    void getTail(float* pfTail, int ipLength, int ipBlockSize);
     
     void blockImpulseResponse();
 protected:
@@ -57,7 +57,7 @@ protected:
  
 private:
 
-    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength;
+    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength,_iIRLenNoPad;
     float *_pfIR;
     bool _bIsInit;
     ConvDomain _eDomainChoice;

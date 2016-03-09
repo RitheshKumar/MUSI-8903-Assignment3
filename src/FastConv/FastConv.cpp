@@ -48,6 +48,7 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     int nZerosToPad = iBlockLength - iLengthOfIr%iBlockLength;
     _iNumBlocks = iLengthOfIr/iBlockLength + 1;
     _iIRLen = iLengthOfIr + nZerosToPad;
+    _iIRLenNoPad = iLengthOfIr;
     _iBlockLen = iBlockLength;
     _iOutputLength = iLengthOfIr;
     _pfIR   = new float[_iIRLen];
@@ -70,6 +71,7 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
 Error_t CFastConv::reset()
 {
     _iIRLen = 0;
+    _iIRLenNoPad = 0;
     _iBlockLen = 0;
     if(_pfIR != NULL){
         delete [] _pfIR;
@@ -182,9 +184,9 @@ Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffe
     
 }
 
-void CFastConv::getTail(float* pfTail, int iTailLength, int ipLength, int ipBLockSize) {
+void CFastConv::getTail(float* pfTail,int ipLength, int ipBLockSize) {
     int iNumZeroToPad_IP = ipBLockSize - ipLength%ipBLockSize;
-    buffer->getTail( pfTail, iTailLength, iNumZeroToPad_IP );
+    buffer->getTail( pfTail, _iIRLenNoPad-1, iNumZeroToPad_IP );
 }
 
 void CFastConv::blockImpulseResponse() {
