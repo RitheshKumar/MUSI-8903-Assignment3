@@ -7,6 +7,7 @@
 #include "ErrorDef.h"
 #include "RingBuffer.h"
 #include "Buffer.h"
+#include "Fft.h"
 #include <iostream>
 
 /*! \brief interface for fast convolution
@@ -25,6 +26,7 @@ public:
 
     //Destroy the object!
     static Error_t destroy( CFastConv * &pFastConv );
+    
     /*! initializes the class with the impulse response and the block length
     \param pfImpulseResponse impulse response samples (mono only)
     \param iLengthOfIr length of impulse response
@@ -45,35 +47,44 @@ public:
     \return Error_t
     */
     Error_t process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength );
-    
-    void getTail(float* pfTail, int iTailLength, int ipLength, int ipBlockSize);
-    
+
+    /*! returns the reverb tail
+     \param pfTail: the reverb tail receiver
+     */
     void flushBuffer(float* pfTail);
     
-    void blockImpulseResponse();
 protected:
 
     CFastConv();
     ~CFastConv();
 
- 
 private:
-
-    int _iIRLen, _iBlockLen, _iNumBlocks, _iOutputLength, _iIRLenNoPad;
-    float *_pfIR;
+    //Variables
+    int _iIRLen, _iBlockLen, _iNumBlocks, _iIRLenNoPad;
     bool _bIsInit;
+    
     ConvDomain _eDomainChoice;
-//    CRingBuffer<float> *inputStorage, *outputStorage;
     
-    CBuffer* buffer;
-    
+    float *_pfIR;
     float* m_pfTailBuffer;
+    CFft *m_pCFft;
 
-    //Private Functions
+    //Functions
+    /* Compute the convolution in time domain
+     \ Convolve the input signal with impulse response (without blocking)
+     \ return Error_t
+     \ To understand the convolution equation
+     */
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
-    Error_t bufferInput( float *pfInputBuffer );
     
+    /* Compute the convolution in time domain
+     \ Block-wised Convolution: both of the input and impulse response are blocked
+     \ return Error_t
+     \ Call by the process function when the user chooses the time domain convolution
+     */
     Error_t blockedProcessTimeDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer, int iLengthOfInput, int iLengthOfIr);
+    
+    Error_t blockedProcessFreqDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer);
     
     int NextPowerOf2(int value);
     
