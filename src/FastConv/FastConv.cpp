@@ -86,9 +86,6 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     return kNoError;
 }
 
-/*
- * returns the next power of 2 of a given number
- */
 int CFastConv::NextPowerOf2(int value) {
     int nextPowerOf2 = 1;
     while (nextPowerOf2 < value) {
@@ -104,16 +101,21 @@ Error_t CFastConv::reset()
     _iNumBlocks    = 0;
     _iIRLenNoPad   = 0;
     
-    if(_pfIR){
+    if(_pfIR != NULL){
         delete [] _pfIR;
-        _pfIR = 0;
+    }
+    _pfIR = 0;
+    
+    if (m_pfTailBuffer != NULL) {
+        delete m_pfTailBuffer;
+    }
+    m_pfTailBuffer = 0;
+    
+    if (m_pCFft != NULL) {
+        CFft::destroy(m_pCFft);
     }
     
     _bIsInit = false;
-    
-    delete m_pfTailBuffer;
-     m_pfTailBuffer = 0;
-   
     
     return kNoError;
 }
@@ -180,6 +182,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
                 pfPadOutputStorageBuffer[(nthBlock+nthIrBlock)*_iBlockLen + i] += pfStorageBuffer[i];
             }
             
+            //3, adding the current process output with the previous reverb tail
             for (int i = 0; i < _iIRLenNoPad - 1; i++) {
                 pfPadOutputStorageBuffer[(nthBlock+nthIrBlock)*_iBlockLen + i] += m_pfTailBuffer[i];
             }
@@ -200,6 +203,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     
     memcpy(pfOutputBuffer, pfPadOutputStorageBuffer, iBufferLength*sizeof(float));
     
+    //4, update the reverb tail
     memcpy(m_pfTailBuffer, &pfPadOutputStorageBuffer[iBufferLength], (_iIRLenNoPad-1)*sizeof(float));
     
     delete pfPadOutputStorageBuffer;
@@ -213,46 +217,19 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     //4, copy the data from pfPadOutBuffer to the pfOutputBuffer
 //    memcpy(pfOutputBuffer, pfPadOutputBuffer, iBufferLength*sizeof(float));
     
-    //4, update the reverb tail
-//    memcpy(m_pfTailBuffer, pfTailBuffer, (_iIRLen-1)*sizeof(float));
-    
     delete pfPadInputBuffer;
-//    delete pfPadOutputBuffer;
-//    delete pfTailBuffer;
     pfPadInputBuffer = 0;
-//    pfPadOutputBuffer = 0;
-//    pfTailBuffer = 0;
 
     return kNoError;
 }
-//
+
 Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer ) {
-    
-    //    std::cout<<"Ip: ";
-    //    for( int sample =0; sample<iLengthOfBuffer; sample++){
-    //        std::cout<<pfInputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl;
-    //
-    //    std::cout<<"OpBufferBefore: ";
-    //    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
-    //        std::cout<<pfOutputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl;
-    
     for ( int sample=0; sample<iLengthOfBuffer; sample++ ) {
-        
         for( int ir=0; ir<_iIRLen; ir++ ) {
             pfOutputBuffer[ir+sample] += pfInputBuffer[sample]*_pfIR[ir];
-            
         }
-        
     }
-    
-    //    std::cout<<"OpBufferAfter: ";
-    //    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
-    //        std::cout<<pfOutputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl<<std::endl;
     return kNoError;
-    
 }
 
 Error_t CFastConv::blockedProcessTimeDomain (float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer, int iLengthOfInput, int iLengthOfIr) {

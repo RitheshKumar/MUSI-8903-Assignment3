@@ -65,27 +65,37 @@ private:
     
     ConvDomain _eDomainChoice;
     
-    float *_pfIR;
+    float* _pfIR;
     float* m_pfTailBuffer;
-    CFft *m_pCFft;
+    CFft * m_pCFft;
 
     //Functions
-    /* Compute the convolution in time domain
+    /*! Compute the convolution in time domain
      \ Convolve the input signal with impulse response (without blocking)
      \ return Error_t
      \ To understand the convolution equation
      */
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
     
-    /* Compute the convolution in time domain
+    /*! Compute the convolution in time domain
      \ Block-wised Convolution: both of the input and impulse response are blocked
      \ return Error_t
      \ Call by the process function when the user chooses the time domain convolution
      */
     Error_t blockedProcessTimeDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer, int iLengthOfInput, int iLengthOfIr);
     
+    /*! Compute the convolution in frequency domain
+     \ Block-wised Convolution: both of the input and impulse response are blocked
+     \ Using the Fft.h API
+     \ return Error_t
+     \ Call by the process function when the user chooses the frequency domain convolution
+     */
     Error_t blockedProcessFreqDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer);
     
+    /*! Compute next power of 2 value
+     \ return an integer
+     \ called by the init function
+     */
     int NextPowerOf2(int value);
     
 };
