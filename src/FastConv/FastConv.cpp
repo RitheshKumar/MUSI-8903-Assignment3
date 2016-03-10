@@ -41,6 +41,11 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     reset();
     
     
+    //Check the block length for IR is power of 2
+    //if it is not power of 2, we find the next power of 2 value to be the iBlockLength
+    if (iBlockLength % 2 != 0) {
+        iBlockLength = NextPowerOf2(iBlockLength);
+    }
 
     _eDomainChoice = domainChoice;
 
@@ -88,6 +93,13 @@ Error_t CFastConv::reset()
     return kNoError;
 }
 
+int CFastConv::NextPowerOf2(int value) {
+    int nextPowerOf2 = 1;
+    while (nextPowerOf2 < value) {
+        nextPowerOf2 *= 2;
+    }
+    return nextPowerOf2;
+}
 
 Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBufferLength )
 {
@@ -101,54 +113,43 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     }
     
     buffer->storeInput(pfInputBuffer, iBufferLength);
-    
-//    float *tempInput = new float(iBufferLength);
-//    buffer->getInputBlock(0, tempInput, iBufferLength);
-//    delete [] tempInput; tempInput=0;
-//    for (int sample= 0; sample < iBufferLength; sample++) {
-//        
-//        std::cout<<tempInput[sample];
-//    }
-    
-    
-    if ( _eDomainChoice == kTimeDomain ) {
-        
-        float *pfBridgeOut = new float[iBufferLength + _iIRLen ];
-        memset (pfBridgeOut, 0, sizeof(float)*(iBufferLength + _iIRLen) );
-        
-        
-        
-        processTimeDomain( pfInputBuffer, pfBridgeOut, iBufferLength );
-        
-        //        std::cout<<"pfBridgeOut: ";
-        //        for( int sample = 0; sample < iBufferLength + _iIRLen; sample++ ) {
-        //            std::cout<<pfBridgeOut[sample]<<",";
-        //        }std::cout<<std::endl;
-        
-        
-//        outputStorage->addPostInc(pfBridgeOut, iBufferLength);
-//        outputStorage->add(&pfBridgeOut[iBufferLength], _iIRLen-1);
-        
-        buffer->overLapAdd(pfBridgeOut, iBufferLength, _iIRLen);
-        
-        
-        //        std::cout<<"pfOutputBuffer: ";
-//        for( int sample = 0; sample< iBufferLength; sample++ ) {
-//            pfOutputBuffer[sample] = outputStorage->getPostInc();
-//            //            std::cout<<pfOutputBuffer[sample]<<",";
-//        }
-        //        std::cout<<std::endl;
-        
-        buffer->getOutput(pfOutputBuffer, iBufferLength);//+_iIRLen-1);
 
-        //        std::cout<<"pfOutputBuffer: ";
-//        for (int sample = 0; sample < iBufferLength + _iIRLen - 1; sample++) {
-//            std::cout<<pfOutputBuffer[sample];
-//        } std::cout<<",";
-        
-        delete [] pfBridgeOut;
-        pfBridgeOut = 0;    
+    //1, zero pad the input buffer to multiple integer number of iBlockLength (IR block length)
+    int numOfZeroToPad = 0;
+    int iNumIpBlks = 0;
+    if (iBufferLength%_iBlockLen == 0) {
+        numOfZeroToPad = 0;
+        iNumIpBlks = iBufferLength / _iBlockLen;
+    } else {
+        numOfZeroToPad = _iBlockLen - (iBufferLength%_iBlockLen);
+        iNumIpBlks = iBufferLength / _iBlockLen + 1;
     }
+
+    float *tempOut   = new float[_iBlockLen + _iIRLen - 1];
+    CRingBuffer<float> tempOpBuff( iBufferLength + _iIRLen - 1);
+    //for each inputblock
+    for (int nthBlock = 0; nthBlock < iNumIpBlks; nthBlock++) {
+
+        int curBlkIdx = nthBlock*_iBlockLen;
+        if ( iBufferLength < curBlkIdx + _iBlockLen ) {
+            float *lastBlk   = new float[_iBlockLen];
+            for( int sample=curBlkIdx, i = 0; sample<iBufferLength; sample++, i++ ) {
+                lastBlk[i] = pfInputBuffer[sample];
+            }
+            for( int sample= iBufferLength%_iBlockLen; sample< _iBlockLen; sample++ ) {
+                lastBlk[sample] = 0.0f;
+            }
+            processBlockedTimeDomain( lastBlk, tempOut );
+        }
+        else {
+            processBlockedTimeDomain( &pfInputBuffer[curBlkIdx], tempOut );
+        }
+
+        tempOpBuff.addPostInc( tempOut, _iBlockLen );
+        tempOpBuff.add( &tempOut[curBlkIdx], _iIRLen -1 );
+
+    }
+
     
     return kNoError;
 }
@@ -157,15 +158,6 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
 
 Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer ) {
     
-    //    std::cout<<"Ip: ";
-    //    for( int sample =0; sample<iLengthOfBuffer; sample++){
-    //        std::cout<<pfInputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl;
-    //
-    //    std::cout<<"OpBufferBefore: ";
-    //    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
-    //        std::cout<<pfOutputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl;
     
     for ( int sample=0; sample<iLengthOfBuffer; sample++ ) {
         
@@ -176,23 +168,56 @@ Error_t CFastConv::processTimeDomain (float *pfInputBuffer, float *pfOutputBuffe
         
     }
     
-    //    std::cout<<"OpBufferAfter: ";
-    //    for( int sample =0; sample<2*iLengthOfBuffer-1; sample++){
-    //        std::cout<<pfOutputBuffer[sample]<<", ";
-    //    }std::cout<<std::endl<<std::endl;
+    return kNoError;
+    
+}
+
+Error_t CFastConv::blockTimeConv (float *pfInputBuffer, float *pfOutputBuffer, int iblockIdx ) {
+    
+    
+    for ( int sample=0; sample<_iBlockLen; sample++ ) {
+        
+        for( int ir=0; ir<_iBlockLen; ir++ ) {
+            pfOutputBuffer[ir+sample] += pfInputBuffer[sample]*_pfIR[ir + iblockIdx];
+            
+        }
+        
+    }
+    
     return kNoError;
     
 }
 
 void CFastConv::getTail(float* pfTail,int ipLength, int ipBLockSize) {
+    
     int iNumZeroToPad_IP = ipBLockSize - ipLength%ipBLockSize;
     buffer->getTail( pfTail, _iIRLenNoPad-1, iNumZeroToPad_IP );
 }
 
-void CFastConv::blockImpulseResponse() {
-    
-} 
 
+void CFastConv::processBlockedTimeDomain( float *pfInput, float *pfOutput ) {
+    
+    CRingBuffer<float> tempBuff(_iBlockLen + _iIRLen - 1);
+    float *tempOut = new float[2*_iBlockLen - 1];
+    int curIRBlkIdx = 0;
+
+    //for each IRblock
+    for (int nthIRBlock = 0; nthIRBlock < _iNumBlocks; nthIRBlock++) {
+
+        curIRBlkIdx = nthIRBlock*_iBlockLen;
+
+        blockTimeConv( pfInput, tempOut, curIRBlkIdx );
+
+        tempBuff.addPostInc( tempOut, _iBlockLen );
+        tempBuff.add( &tempOut[_iBlockLen], _iBlockLen -1 );
+        
+    }
+
+    for (int sample; sample< _iBlockLen + _iIRLen - 1; sample++ ) {
+        pfOutput[sample] = tempBuff.getPostInc();
+    }
+
+}
 
 
 

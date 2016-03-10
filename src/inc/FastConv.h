@@ -69,6 +69,9 @@ private:
     //Private Functions
     Error_t processTimeDomain( float *pfInputBuffer, float *pfOutputBuffer, int iLengthOfBuffer );
     Error_t bufferInput( float *pfInputBuffer );
+    int NextPowerOf2( int value );
+    void processBlockedTimeDomain( float *pfInput, float *pfOutput );
+    Error_t blockTimeConv (float *pfInputBuffer, float *pfOutputBuffer, int iblockIdx );
 };
 
 

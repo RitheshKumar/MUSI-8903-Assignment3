@@ -14,6 +14,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include <fstream>
 #include "RingBuffer.h"
 
 class CBuffer {
@@ -96,6 +97,16 @@ public:
     
     void getTail(float* pfTail, int iTailLength, int numOfZeroToPad) {
 //        std::cout<<"Tail:";
+        int tempReadIdx = m_pfOutputStorageBuffer->getReadIdx();
+        m_pfOutputStorageBuffer->setReadIdx(0);
+        std::ofstream outFile("/Users/Rithesh/Documents/Learn C++/ASE/notes/Matlab_ASE/outputStorageBuffer.txt");
+        for (int sample=0; sample<m_iOutputStorageLength; sample++) {
+            outFile<<m_pfOutputStorageBuffer->get(sample)<<"\n";
+        }
+        outFile.close();
+        
+        m_pfOutputStorageBuffer->setReadIdx(tempReadIdx);
+        
         for (int sample = 0; sample < iTailLength; sample++) {
 //            pfTail[sample] = m_pfOutputStorageBuffer->getPostInc();
             pfTail[sample] = m_pfOutputStorageBuffer->get(sample - numOfZeroToPad);//numOfZeroToPad);
