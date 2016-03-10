@@ -79,7 +79,7 @@ Error_t CFastConv::init( float *pfImpulseResponse, int iLengthOfIr, int iBlockLe
     memset(m_pfTailBuffer, 0.0f, (_iIRLenNoPad-1)*sizeof(float));
     
     if (_eDomainChoice == kFreqDomain) {
-        m_pCFft->init(2*_iBlockLen); //To avoid circular convolution
+        m_pCFft->init(_iBlockLen, 2, CFft::kWindowNone, CFft::kNoWindow); //To avoid circular convolution
     }
     
     _bIsInit = true;
@@ -107,13 +107,13 @@ Error_t CFastConv::reset()
     _pfIR = 0;
     
     if (m_pfTailBuffer != NULL) {
-        delete m_pfTailBuffer;
+        delete [] m_pfTailBuffer;
     }
     m_pfTailBuffer = 0;
     
-    if (m_pCFft != NULL) {
-        CFft::destroy(m_pCFft);
-    }
+//    if (m_pCFft != NULL) {
+//        CFft::destroy(m_pCFft);
+//    }
     
     _bIsInit = false;
     
@@ -187,8 +187,8 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
                 pfPadOutputStorageBuffer[(nthBlock+nthIrBlock)*_iBlockLen + i] += m_pfTailBuffer[i];
             }
             
-            delete pfProcessingIrBlock;
-            delete pfStorageBuffer;
+            delete [] pfProcessingIrBlock;
+            delete [] pfStorageBuffer;
             pfProcessingIrBlock = 0;
             pfStorageBuffer = 0;
         }
@@ -197,7 +197,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
 
         
     
-        delete pfProcessingBlock;
+        delete [] pfProcessingBlock;
         pfProcessingBlock = 0;
     }
     
@@ -206,7 +206,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     //4, update the reverb tail
     memcpy(m_pfTailBuffer, &pfPadOutputStorageBuffer[iBufferLength], (_iIRLenNoPad-1)*sizeof(float));
     
-    delete pfPadOutputStorageBuffer;
+    delete [] pfPadOutputStorageBuffer;
     pfPadOutputStorageBuffer = 0;
     
 //    //3, adding the current process output with the previous reverb tail
@@ -217,7 +217,7 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     //4, copy the data from pfPadOutBuffer to the pfOutputBuffer
 //    memcpy(pfOutputBuffer, pfPadOutputBuffer, iBufferLength*sizeof(float));
     
-    delete pfPadInputBuffer;
+    delete [] pfPadInputBuffer;
     pfPadInputBuffer = 0;
 
     return kNoError;
@@ -253,28 +253,69 @@ void CFastConv::flushBuffer(float* pfTail) {
 
 
 Error_t CFastConv::blockedProcessFreqDomain(float* pfInputBuffer, float* pfImpulseResponse, float* pfOutputBuffer) {
+    float *mySpectrum = new float[2*_iBlockLen],
+          *mulSpecOut = new float[2*_iBlockLen],
+          *tempOut    = new float[2*_iBlockLen];
+
+    
+    std::memset(mySpectrum, 0.0f, 2*_iBlockLen*(sizeof(float)) );
+    
+    std::memset(mulSpecOut, 0.0f, 2*_iBlockLen*(sizeof(float)) );
+    
+    std::memset(tempOut, 0.0f, 2*_iBlockLen*(sizeof(float)) );
+    
+    //    std::memset(writeOut, 0.0f, 2*_iBlockLen*(sizeof(float)) );
     
     
-    CFft::complex_t *mySpectrum = new float[2*_iBlockLen],
-                    *mulSpecOut = new float[2*_iBlockLen];
-     float          *tempOut    = new float[2*_iBlockLen],
-                    *writeOut   = new float[2*_iBlockLen];
+    
+    for (int sample=0; sample<_iBlockLen; sample++ ){
+        
+        pfInputBuffer[sample]   *= 2*_iBlockLen;
+        
+    }
+    
+    
     
     m_pCFft->doFft(mySpectrum, pfInputBuffer );
+    
     m_pCFft->doFft(mulSpecOut, pfImpulseResponse );
+    
+    
     
     m_pCFft->mulCompSpectrum( mulSpecOut, mySpectrum );
     
-    m_pCFft->getMagnitude(writeOut, mulSpecOut);
     
-    for (int sample=0; sample<2*_iBlockLen; sample++) {
-        mulSpecOut[sample] *= 2*_iBlockLen;
-    }
+    
+    //    m_pCFft->getMagnitude(writeOut, mulSpecOut);
+    
+    
+    
+    //    for (int sample=0; sample<m_pCFft->kLengthFft; sample++) {
+    
+    //        mulSpecOut[sample] = mulSpecOut[sample]*(m_pCFft->kLengthFft);
+    
+    //    }
+    
+    
+    
+    //    m_pCFft->getMagnitude(writeOut, mulSpecOut);
+    
+    
+    
     m_pCFft->doInvFft(tempOut, mulSpecOut);
+    
+    
     
     memcpy(pfOutputBuffer, tempOut, (2*_iBlockLen-1)*sizeof(float));
     
+    delete [] mySpectrum; mySpectrum = 0;
+    delete [] mulSpecOut; mulSpecOut = 0;
+    delete [] tempOut;    tempOut    = 0;
+    
+    
     return kNoError;
+    
+    
     
 }
 
