@@ -111,9 +111,6 @@ Error_t CFastConv::reset()
     }
     m_pfTailBuffer = 0;
     
-//    if (m_pCFft != NULL) {
-//        CFft::destroy(m_pCFft);
-//    }
     
     _bIsInit = false;
     
@@ -159,16 +156,13 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
         float* pfProcessingBlock = new float[_iBlockLen];
         
 
-        memmove(pfProcessingBlock, &pfPadInputBuffer[nthBlock*_iBlockLen], _iBlockLen*sizeof(float));
+        memcpy(pfProcessingBlock, &pfPadInputBuffer[nthBlock*_iBlockLen], _iBlockLen*sizeof(float));
         
         //for each ir block
         for (int nthIrBlock = 0; nthIrBlock < _iNumBlocks; nthIrBlock++) {
             float* pfProcessingIrBlock = new float[_iBlockLen];
             float* pfStorageBuffer = new float[2*_iBlockLen - 1];
             
-//            for (int irSample = 0; irSample < _iBlockLen; irSample++) {
-//                    pfProcessingIrBlock[sample] = _pfIR[(nthIrBlock*_iBlockLen) + irSample];
-//                }
             memcpy(pfProcessingIrBlock, &_pfIR[nthIrBlock*_iBlockLen], _iBlockLen*sizeof(float));
             memset(pfStorageBuffer, 0.0f, (2*_iBlockLen-1)*sizeof(float));
             
@@ -209,14 +203,6 @@ Error_t CFastConv::process (float *pfInputBuffer, float *pfOutputBuffer, int iBu
     delete [] pfPadOutputStorageBuffer;
     pfPadOutputStorageBuffer = 0;
     
-//    //3, adding the current process output with the previous reverb tail
-//    for (int sample = 0; sample < _iIRLen-1; sample++) {
-//        pfPadOutputBuffer[sample] += m_pfTailBuffer[sample];
-//    }
-    
-    //4, copy the data from pfPadOutBuffer to the pfOutputBuffer
-//    memcpy(pfOutputBuffer, pfPadOutputBuffer, iBufferLength*sizeof(float));
-    
     delete [] pfPadInputBuffer;
     pfPadInputBuffer = 0;
 
@@ -236,9 +222,7 @@ Error_t CFastConv::blockedProcessTimeDomain (float* pfInputBuffer, float* pfImpu
     for (int sample = 0; sample < iLengthOfInput; sample++) {
         for (int ir = 0; ir < iLengthOfIr; ir++) {
             pfOutputBuffer[ir+sample] += pfInputBuffer[sample] * pfImpulseResponse[ir];
-//            if (pfOutputBuffer[ir+sample] == 0) {
-////                std::cout<< "This index: " << (ir+sample) << "has value of 0" <<std::endl;
-//            }
+
         }
     }
     return kNoError;
@@ -247,7 +231,6 @@ Error_t CFastConv::blockedProcessTimeDomain (float* pfInputBuffer, float* pfImpu
 void CFastConv::flushBuffer(float* pfTail) {
     for (int i = 0; i < _iIRLenNoPad-1; i++) {
         pfTail[i] = m_pfTailBuffer[i];
-//        std::cout<< "value of " << pfTail[i] << " at " << i << std::endl;
     }
 }
 
@@ -264,7 +247,6 @@ Error_t CFastConv::blockedProcessFreqDomain(float* pfInputBuffer, float* pfImpul
     
     std::memset(tempOut, 0.0f, 2*_iBlockLen*(sizeof(float)) );
     
-    //    std::memset(writeOut, 0.0f, 2*_iBlockLen*(sizeof(float)) );
     
     
     
@@ -284,23 +266,7 @@ Error_t CFastConv::blockedProcessFreqDomain(float* pfInputBuffer, float* pfImpul
     
     m_pCFft->mulCompSpectrum( mulSpecOut, mySpectrum );
     
-    
-    
-    //    m_pCFft->getMagnitude(writeOut, mulSpecOut);
-    
-    
-    
-    //    for (int sample=0; sample<m_pCFft->kLengthFft; sample++) {
-    
-    //        mulSpecOut[sample] = mulSpecOut[sample]*(m_pCFft->kLengthFft);
-    
-    //    }
-    
-    
-    
-    //    m_pCFft->getMagnitude(writeOut, mulSpecOut);
-    
-    
+
     
     m_pCFft->doInvFft(tempOut, mulSpecOut);
     
