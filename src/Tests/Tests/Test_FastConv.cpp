@@ -38,6 +38,8 @@ SUITE(FastConv)
         float m_fImpulseResponse,
               m_fInputSignal;
         
+        clock_t time = 0;
+        
     };
 /*
     Test 0.0
@@ -63,7 +65,6 @@ SUITE(FastConv)
         CHECK_ARRAY_CLOSE(reference, procOut, 8, 1e-05);
         delete [] procOut; procOut = 0;
         delete [] tail;    tail    = 0;
-        
     }
 
 /*
@@ -185,6 +186,110 @@ SUITE(FastConv)
             
         }
     }
+    
+    TEST_FIXTURE(FastConvData, TimeTest_TimeDomain)
+    {
+        time = clock();
+        //create a impulse response of 51 seconds with a random indexing of 1
+        int iSampleRate       = 100;
+        int iIRLengthInSec    = 51;
+        int iIRLengthInSample = iSampleRate * iIRLengthInSec;
+        float* pfRandomIR     = new float[iIRLengthInSample];
+        float* pfTail         = new float[iIRLengthInSample - 1];
+        float decEnv          = 1;
+        
+        for (int sample = 0; sample < iIRLengthInSample; sample++) {
+            pfRandomIR[sample] =   decEnv - 0.1f * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+        }
+        
+        // create a input signal: delayed impulse (5 samples)
+        int iInputLength      = 10;
+        float* pfInputSignal  = new float[iInputLength];
+        float* pfOutputSignal = new float[iInputLength];
+        
+        for( int sample = 0; sample<iInputLength; sample++) {
+            pfInputSignal[sample] = 0.0f;
+        }
+        pfInputSignal[5] = 1.f;
+        
+        // create the reference signal: shifted IR (shifted by 5 samples)
+        float* pfReference = new float[iInputLength+iIRLengthInSample-1];
+        for (int sample = 0; sample < iInputLength+iIRLengthInSample-1; sample++) {
+            pfReference[sample] = 0.f;
+        }
+        for (int sample = 5; sample < 5+iIRLengthInSample; sample++) {
+            pfReference[sample] = pfRandomIR[sample - 5];
+        }
+        
+        // identity test using process function
+        m_pCFastConv->init(pfRandomIR, iIRLengthInSample, 8000, CFastConv::kTimeDomain);
+        m_pCFastConv->process(pfInputSignal, pfOutputSignal, iInputLength);
+        m_pCFastConv->flushBuffer(pfTail);
+        
+        CHECK_ARRAY_CLOSE( pfReference, pfOutputSignal, iInputLength, 1e-05);
+        CHECK_ARRAY_CLOSE( &pfReference[iInputLength], pfTail, (iIRLengthInSample - 1), 1e-05);
+        
+        delete [] pfRandomIR;      pfRandomIR = 0;
+        delete [] pfInputSignal;   pfInputSignal = 0;
+        delete [] pfOutputSignal;  pfOutputSignal = 0;
+        delete [] pfReference;     pfReference = 0;
+        delete [] pfTail;          pfTail      = 0;
+        
+        std::cout<<"Fast Convolution using time domain processing takes: " << (clock()-time)*1.F/CLOCKS_PER_SEC << "seconds." << std::endl;
+    }
+    
+    TEST_FIXTURE(FastConvData, TimeTest_FreqDomain)
+    {
+        time = clock();
+        //create a impulse response of 51 seconds with a random indexing of 1
+        int iSampleRate       = 100;
+        int iIRLengthInSec    = 51;
+        int iIRLengthInSample = iSampleRate * iIRLengthInSec;
+        float* pfRandomIR     = new float[iIRLengthInSample];
+        float* pfTail         = new float[iIRLengthInSample - 1];
+        float decEnv          = 1;
+        
+        for (int sample = 0; sample < iIRLengthInSample; sample++) {
+            pfRandomIR[sample] =   decEnv - 0.1f * (static_cast <float> (rand()) / static_cast <float> (RAND_MAX));
+        }
+        
+        // create a input signal: delayed impulse (5 samples)
+        int iInputLength      = 10;
+        float* pfInputSignal  = new float[iInputLength];
+        float* pfOutputSignal = new float[iInputLength];
+        
+        for( int sample = 0; sample<iInputLength; sample++) {
+            pfInputSignal[sample] = 0.0f;
+        }
+        pfInputSignal[5] = 1.f;
+        
+        // create the reference signal: shifted IR (shifted by 5 samples)
+        float* pfReference = new float[iInputLength+iIRLengthInSample-1];
+        for (int sample = 0; sample < iInputLength+iIRLengthInSample-1; sample++) {
+            pfReference[sample] = 0.f;
+        }
+        for (int sample = 5; sample < 5+iIRLengthInSample; sample++) {
+            pfReference[sample] = pfRandomIR[sample - 5];
+        }
+        
+        // identity test using process function
+        m_pCFastConv->init(pfRandomIR, iIRLengthInSample, 8000, CFastConv::kFreqDomain);
+        m_pCFastConv->process(pfInputSignal, pfOutputSignal, iInputLength);
+        m_pCFastConv->flushBuffer(pfTail);
+        
+        CHECK_ARRAY_CLOSE( pfReference, pfOutputSignal, iInputLength, 1e-05);
+        CHECK_ARRAY_CLOSE( &pfReference[iInputLength], pfTail, (iIRLengthInSample - 1), 1e-05);
+        
+        delete [] pfRandomIR;      pfRandomIR = 0;
+        delete [] pfInputSignal;   pfInputSignal = 0;
+        delete [] pfOutputSignal;  pfOutputSignal = 0;
+        delete [] pfReference;     pfReference = 0;
+        delete [] pfTail;          pfTail      = 0;
+        
+        std::cout<<"Fast Convolution using frequency domain processing takes: " << (clock()-time)*1.F/CLOCKS_PER_SEC << "seconds." << std::endl;
+    }
+
+
 }
 
 

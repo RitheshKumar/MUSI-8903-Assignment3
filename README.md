@@ -7,6 +7,7 @@ Repo for the class Audio Software Engineering Spring 2016
 
 
 2, Implement a 'flushBuffer' function that will return the remaining result (reverb tail) at the end of the input signal. When client has multiple times of processing call, the current output which has the same length to the input buffer is the summation of current processing result and previous reverb tail. After last processing call, the flushBuffer function returns the reverb tail to the client.
+ The output signal is the same as the input signal. So the user only has to allocate memory for getting the reverb tail. The user has to allocate IRlen-1 sized buffer to get the tail
 
 3, Implement two tests (in Test_FastConv) for this implementation
 	1, identity: generate a random IR (length 51 s), set it (init) and check the the output of a delayed (5 samples) impulse is the shifted IR.
@@ -19,3 +20,6 @@ Repo for the class Audio Software Engineering Spring 2016
 Block-wised convolution algorithm. First, we block both the input and impulse response signal with the block size of power of 2 (greater than the block size that client passes in); then, we use FFT by communicating with the wrapper interface to get the frequency domain representation of the input and impulse reponse; Multiply them; Take inverse FFT; Split the result into output signal and reverb tail.
 
 5, build program in release mode and use ctime, then compare the runtime performance between your time domain and frequency domain implementations
+There is a significant difference between time and frequency domain computations:
+	FreqDomain->  0.003853 sec
+	TimeDomain->  0.25 sec
